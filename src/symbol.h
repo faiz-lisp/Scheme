@@ -1,7 +1,6 @@
 #ifndef SCHEME_SYMBOL_H
 #define SCHEME_SYMBOL_H
 
-#include "scm.h"
 
 scm_symbol *scm_quote_symbol;
 scm_symbol *scm_dot_symbol;
@@ -34,9 +33,9 @@ scm_symbol *scm_lt_symbol;
 
 scm_symbol *scm_memv_symbol;
 
-
 void scm_init_symbol(scm_env *);
 scm_symbol* scm_get_intern_symbol(const char *);
 scm_object* scm_gen_symbol();
 
+#include"symbol.c"
 #endif //SCHEME_SYMBOL_H

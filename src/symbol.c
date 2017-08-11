@@ -1,41 +1,19 @@
-﻿#include <string.h>
-#include "symbol.h"
-#include "bool.h"
-#include "list.h"
-#include "env.h"
-#include "error.h"
-#include "hashtable.h"
+// #include <string.h>
+// #include "symbol.h"
+// #include "bool.h"
+ #include "list.h"
+// #include "env.h"
+// #include "error.h"
 
 // TODO: hashtable
-static hashtable *symbols = NULL;
+static scm_object *symbols = scm_null;
 static int gen_sym_id = 0;
 
 static scm_object* symbol_p_prim(int, scm_object *[]);
 
-static int symbol_equal(void *x, void *y)
-{
-    return strcmp((char *)x, (char *)y) == 0;
-}
-
-static int symbol_hash(void *s)
-{
-    int ret = 0;
-    char *sc = s;
-    while(*sc) {
-        ret *= 10;
-        ret += *sc++;
-    }
-
-    if (ret < 0) ret = -ret;
-
-    return ret;
-}
-
 void scm_init_symbol(scm_env *env)
 {
-    symbols = hashtable_new(1024, symbol_equal, symbol_hash);
-
-    scm_quote_symbol = scm_get_intern_symbol("quote");
+    scm_quote_symbol = scm_get_intern_symbol("quote"); //faiz
     scm_dot_symbol = scm_get_intern_symbol(".");
     scm_if_symbol = scm_get_intern_symbol("if");
     scm_define_symbol = scm_get_intern_symbol("define");
@@ -74,18 +52,27 @@ static scm_object* scm_make_symbol(const char *s)
     return o;
 }
 
+static void intern_symbol(scm_symbol *sym)
+{
+    symbols = cons((scm_object *)sym, symbols);
+}
+
 scm_symbol* scm_get_intern_symbol(const char *str)
 {
-    assert(symbols != NULL);
-
-    scm_symbol *sym = hashtable_get(symbols, (void *)str);
-
-    if (sym == NULL) { // if not interned
-        sym = (scm_symbol *) scm_make_symbol((char *)str);
-        // intern
-        hashtable_set(symbols, (void *)str, sym);
+    scm_object *syms = symbols;
+    scm_symbol *sym;
+    // slow->hash
+    while (!SCM_NULLP(syms)) {
+        sym = (scm_symbol *)SCM_CAR(syms);
+        if (stricmp(SCM_SYMBOL_STR_VAL(sym), str) == 0) {
+            //If1 printf("%s; ",str);
+            return sym;
+        }
+        syms = SCM_CDR(syms);
     }
-
+    // if not interned
+    sym = (scm_symbol *)scm_make_symbol((char*)str);
+    intern_symbol(sym);
     return sym;
 }
 
@@ -97,7 +84,9 @@ void scm_reset_gen_symbol()
 scm_object* scm_gen_symbol()
 {
     gen_sym_id++;
-    return scm_make_symbol((const char *)gen_sym_id);
+    scm_object *sym = scm_make_symbol(NULL);
+    intern_symbol((scm_symbol *)sym);
+    return sym;
 }
 
 static scm_object* symbol_p_prim(int argc, scm_object *argv[])

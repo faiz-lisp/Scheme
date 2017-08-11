@@ -1,4 +1,5 @@
-﻿#include "port.h"
+//#include "port.h"
+#include "print.h"
 
 void scm_init_port(scm_env *env)
 {

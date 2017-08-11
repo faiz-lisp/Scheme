@@ -1,19 +1,22 @@
-﻿#ifndef SCHEME_ENV_H
+#ifndef SCHEME_ENV_H
 #define SCHEME_ENV_H
 
-#include "scm.h"
-#include "hashtable.h"
+//#include "scm.h"
 
-struct scm_env {
-    hashtable *bindings;
-    scm_env *parent;
+typedef struct _scm_env scm_env;
+typedef struct _scm_env scm_env_entry;
+
+// TODO: high-performance
+struct _scm_env {
+    scm_symbol *id;
+    scm_object *val;
+    struct _scm_env *rest;
 };
 
 scm_env* scm_basic_env();
-scm_env* scm_env_new_frame(int size, scm_env *);
 void scm_env_add_binding(scm_env *, scm_symbol *, scm_object *);
-int scm_env_update_binding(scm_env *, scm_symbol *, scm_object *);
-scm_object* scm_env_lookup(scm_env *, scm_symbol *);
+scm_env_entry* scm_env_lookup(scm_env *, scm_symbol *);
 void scm_add_prim(scm_env *, const char *, scm_prim, int, int);
 
+#include"env.c"
 #endif //SCHEME_ENV_H

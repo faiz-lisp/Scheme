@@ -1,11 +1,24 @@
-﻿#ifndef SCM_H
+#ifndef SCM_H
 #define SCM_H
 
-#define NDEBUG
+//#define NDEBUG
 
+// c
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
+#include <ctype.h>
+// cpp
+#include <string.h>
+//win
+#include <time.h>
+#include<conio.h>
+#include<windows.h>
+// dbg
+#if Dbg
+    #include<assert.h>
+#endif
+// oth
+#include <setjmp.h>
 
 enum {
     scm_integer_type = 1,
@@ -93,8 +106,7 @@ typedef struct {
     int max_arity;
 } scm_primitive_proc;
 
-struct scm_env;
-typedef struct scm_env scm_env;
+typedef struct _scm_env scm_env;
 
 typedef struct {
     scm_object o;
@@ -167,5 +179,53 @@ typedef struct {
 /*                      memory management macros                          */
 /* Allocation */
 #define scm_malloc_object(size) ((scm_object *)malloc(size))
+
+// faiz
+
+//==============
+//#define Ver "0.06"
+#define Dbg 0
+//===========
+
+#define Tru true //
+#define Fal false
+#define Nul NULL
+//
+#define and(a,b) ((a)&&(b))
+#define or(a,b)	 ((a)||(b))
+#define ifn(b)	 if(!(b))
+//
+#define IfD     if(Dbg)
+#define If0     if(0)
+#define If1     if(1)
+//
+#define Scm_add_prim(env,f,min,max) scm_add_prim(env, #f, f##_prim, 0, 1)
+
+#define function(ret, funcName, ...) struct __args_##funcName{__VA_ARGS__}; ret funcName(struct __args_##funcName args)
+#define call(funcName, ...) func((struct __args_##funcName){__VA_ARGS__})
+
+//inc
+#include    "env.h"
+// #include  "error.h"
+//#include   "eval.h"
+//#include   "port.h"
+//#include  "print.h"
+//#include  "pcc32.h"
+// #include "symbol.h"
+// #include   "list.h"
+#include"vector.h"
+//#include "number.h"
+//#include   "bool.h"
+
+#include   "char.h"
+#include    "str.h"
+
+#include    "fun.h"
+#include   "read.h"
+#include "system.h"
+
+#if Dbg
+    #include	 "gc.h"
+#endif
 
 #endif //SCM_H

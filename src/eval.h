@@ -1,10 +1,6 @@
 #ifndef SCHEME_EVAL_H
 #define SCHEME_EVAL_H
 
-#include "scm.h"
-#include "list.h"
-#include <setjmp.h>
-
 
 #define scm_operator SCM_CAR
 #define scm_operands SCM_CDR
@@ -87,4 +83,5 @@ void scm_init_eval(scm_env *);
 scm_object* scm_eval(scm_object *);
 scm_object* scm_apply(scm_object *, int, scm_object *[]);
 
+#include"eval.c"
 #endif //SCHEME_EVAL_H

@@ -1,7 +1,7 @@
 #ifndef SCHEME_BOOL_H
 #define SCHEME_BOOL_H
 
-#include "scm.h"
+//#include "scm.h"
 
 #define SCM_BOOL(b) ((b) ? scm_true : scm_false)
 
@@ -15,4 +15,5 @@ int scm_equal(scm_object *, scm_object *);
 
 void scm_init_bool(scm_env *env);
 
+#include"bool.c"
 #endif //SCHEME_BOOL_H

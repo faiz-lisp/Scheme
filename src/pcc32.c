@@ -1,4 +1,4 @@
-﻿/********************************************************
+/********************************************************
 * Author:  RedOC                                        *
 * Email:   RedOC@foxmail.com                            *
 * Notes:   Some functions about Win32 Console Control.  *
@@ -6,7 +6,7 @@
 * Date:    2008-12-17 00:28:39                          *
 ********************************************************/
 
-#include "pcc32.h"
+//#include "pcc32.h"
 
 void delayMS(uint32 d)
 {
@@ -16,7 +16,7 @@ void delayMS(uint32 d)
 
 void clearText(void)
 {
-   system("cls");
+   system("cls"); //clear
    return ;
 }
 

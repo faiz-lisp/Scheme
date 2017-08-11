@@ -1,10 +1,10 @@
-#include <stdio.h>
-#include <string.h>
-#include "error.h"
-#include "print.h"
+// #include <stdio.h>
+// #include <string.h>
+// #include "error.h"
+// #include "print.h"
 #include "eval.h"
-#include <setjmp.h>
-#include "pcc32.h"
+// #include <setjmp.h>
+//#include "pcc32.h"
 
 void scm_print_error(const char *info)
 {
@@ -112,9 +112,9 @@ scm_object* scm_out_of_range(const char *name, scm_object *obj, int start, int e
     if (SCM_STRINGP(obj)) {
         type = "string";
         len = SCM_STR_LEN(obj);
-    } else if (SCM_VECTORP(obj)) {
+    } else {
         type = "vector";
-        len = SCM_VECTOR_LEN(obj);
+        //TODO: vector
     }
 
     char info[200] = {0};

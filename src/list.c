@@ -1,8 +1,8 @@
-#include "list.h"
+// #include "list.h"
 #include "number.h"
-#include "bool.h"
-#include "env.h"
-#include "error.h"
+// #include "bool.h"
+// #include "env.h"
+// #include "error.h"
 
 scm_object scm_null[1];
 
@@ -15,11 +15,7 @@ static scm_object* cdr_prim(int, scm_object *[]);
 static scm_object* setcar_prim(int, scm_object *[]);
 static scm_object* setcdr_prim(int, scm_object *[]);
 static scm_object* list_prim(int, scm_object *[]);
-static scm_object* list_tail_prim(int, scm_object *[]);
-static scm_object* list_ref_prim(int, scm_object *[]);
 static scm_object* length_prim(int, scm_object *[]);
-static scm_object* append_prim(int, scm_object *[]);
-static scm_object* reverse_prim(int, scm_object *[]);
 static scm_object* memq_prim(int, scm_object *[]);
 static scm_object* memv_prim(int, scm_object *[]);
 static scm_object* member_prim(int, scm_object *[]);
@@ -37,14 +33,9 @@ void scm_init_list(scm_env *env)
     scm_add_prim(env, "cdr", cdr_prim, 1, 1);
     scm_add_prim(env, "set-car!", setcar_prim, 2, 2);
     scm_add_prim(env, "set-cdr!", setcdr_prim, 2, 2);
-    
+
     scm_add_prim(env, "list", list_prim, 0, -1);
-    
-    scm_add_prim(env, "list-tail", list_tail_prim, 2, 2);
-    scm_add_prim(env, "list-ref", list_ref_prim, 2, 2);
     scm_add_prim(env, "length", length_prim, 1, 1);
-    scm_add_prim(env, "append", append_prim, 0, -1);
-    scm_add_prim(env, "reverse", reverse_prim, 1, 1);
 
     scm_add_prim(env, "memq", memq_prim, 2, 2);
     scm_add_prim(env, "memv", memv_prim, 2, 2);
@@ -81,16 +72,6 @@ scm_object* scm_build_list(int size, scm_object **argv)
     }
 
     return pair;
-}
-/*
- * @list1 严格表
- * @list2 表
- */
-scm_object* scm_append_list2(scm_object *list1, scm_object *list2)
-{
-    // TODO: iteration
-    return SCM_PAIRP(list1) ?
-           SCM_CONS(SCM_CAR(list1), scm_append_list2(SCM_CDR(list1), list2)) : list2;
 }
 
 /*
@@ -188,76 +169,12 @@ static scm_object* list_prim(int argc, scm_object *argv[])
     return scm_build_list(argc, argv);
 }
 
-static scm_object* do_checked_list_ref(const char *name, int takecar, int argc, scm_object *argv[]) {
-    if(!SCM_PAIRP(argv[0]))
-        return scm_wrong_contract(name, "pair?", 0, argc, argv);
-    if(!is_exact_nonnegative_integer(argv[1]))
-        return scm_wrong_contract(name, "exact-nonnegative-integer?", 1, argc, argv);
-    
-    scm_object *list = argv[0];
-    int index = SCM_INT_VAL(argv[1]);
-    while (index > 0) {
-        index--;
-        if (!SCM_PAIRP(list))
-            return scm_wrong_contract("cdr", "pair?", 0, argc, argv);
-        list = SCM_CDR(list);
-    }
-    
-    if (takecar) {
-        if (!SCM_PAIRP(list))
-            return scm_wrong_contract("car", "pair?", 0, argc, argv);
-
-        return SCM_CAR(list);
-    } else
-        return list;
-}
-
-static scm_object* list_tail_prim(int argc, scm_object *argv[])
-{
-    return do_checked_list_ref("list-tail", 0, argc, argv);
-}
-
-static scm_object* list_ref_prim(int argc, scm_object *argv[])
-{
-    return do_checked_list_ref("list-ref", 1, argc, argv);
-}
-
 static scm_object* length_prim(int argc, scm_object *argv[])
 {
     if (!scm_is_list(argv[0]))
         return scm_wrong_contract("length", "list?", 0, argc, argv);
 
     return scm_make_integer(scm_list_length(argv[0]));
-}
-
-static scm_object* append_prim(int argc, scm_object *argv[])
-{
-    scm_object *ret = scm_null;
-    if (argc > 0) {
-        int i;
-        for (i = 0; i < argc - 1; i++) {
-            if (!scm_is_list(argv[0]))
-                return scm_wrong_contract("append", "list?", i, argc, argv);
-            ret = scm_append_list2(ret, argv[i]);
-        }
-        ret = scm_append_list2(ret, argv[i]);
-    }
-
-    return ret;
-}
-
-static scm_object* reverse_prim(int argc, scm_object *argv[])
-{
-    if (!scm_is_list(argv[0]))
-        return scm_wrong_contract("reverse", "list?", 0, argc, argv);
-
-    scm_object *ret = scm_null;
-    scm_object *list = argv[0];
-    scm_list_for_each(list) {
-        ret = SCM_LCONS(SCM_CAR(list), ret);
-    }
-
-    return ret;
 }
 
 #define GEN_MEMBER_PRIM(name, scm_name, eq) \
@@ -272,7 +189,6 @@ static scm_object* reverse_prim(int argc, scm_object *argv[])
             if (scm_eq(SCM_CAR(list), obj)) \
                 return list; \
         } \
-        return scm_false; \
     }
 
 GEN_MEMBER_PRIM(memq_prim, "memq", eq?);

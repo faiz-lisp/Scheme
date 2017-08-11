@@ -1,16 +1,16 @@
-#include <time.h>
-#include <string.h>
-#include "system.h"
-#include "bool.h"
-#include "number.h"
-#include "str.h"
-#include "symbol.h"
-#include "port.h"
-#include "read.h"
-#include "print.h"
-#include "env.h"
-#include "eval.h"
-#include "error.h"
+// #include <time.h>
+// #include <string.h>
+// #include "system.h"
+// #include "bool.h"
+// #include "number.h"
+// #include "str.h"
+// #include "symbol.h"
+// #include "port.h"
+// #include "read.h"
+// #include "print.h"
+// #include "env.h"
+// #include "eval.h"
+// #include "error.h"
 
 
 static const char *help_info = "\n"
@@ -20,7 +20,6 @@ static const char *help_info = "\n"
 
 static scm_object* load_prim(int, scm_object *[]);
 static scm_object* time_prim(int, scm_object *[]);
-static scm_object* clock_prim(int, scm_object *[]);
 static scm_object* rand_prim(int, scm_object *[]);
 static scm_object* help_prim(int, scm_object *[]);
 static scm_object* exit_prim(int, scm_object *[]);
@@ -46,7 +45,6 @@ void scm_init_system(scm_env *env)
     scm_add_prim(env, "load", load_prim, 1, 1);
 
     scm_add_prim(env, "time", time_prim, 0, 0);
-    scm_add_prim(env, "clock", clock_prim, 0, 0);
     scm_add_prim(env, "rand", rand_prim, 0, 0);
 
     scm_add_prim(env, "?", help_prim, 0, 0);
@@ -55,16 +53,13 @@ void scm_init_system(scm_env *env)
 }
 
 
+
 int scm_load_file(const char* filename)
 {
     FILE *file = fopen(filename, "r");
     if (file == NULL) {
-        scm_print_error("open-input-file: cannot open input file\n  path: ");
-        scm_print_error(filename);
-        scm_print_error("\n");
         return -1;
     }
-
     scm_object *port = scm_make_file_input_port(file);
     scm_object *exp, *val;
     int ch;
@@ -73,23 +68,19 @@ int scm_load_file(const char* filename)
 
     while (!scm_eofp(ch = scm_getc(port))) {
         scm_ungetc(ch, port);
-        val = NULL;
         exp = scm_read(port);
         if (!exp) // 如果遇到错误，中止执行
             break;
         val = scm_eval(exp);
         if (!val) // 同上
             break;
-    }
-
-    if (val && !SCM_VOIDP(val)) {
-        scm_write(scm_stdout_port, val); // 默认用write
-        printf("\n");
+        if (!SCM_VOIDP(val)) {
+            scm_write(scm_stdout_port, val); // 默认用write
+            printf("\n");
+        }
     }
 
     scm_close_input_port(port);
-
-    return 0;
 }
 
 static scm_object* load_prim(int argc, scm_object *argv[])
@@ -97,6 +88,9 @@ static scm_object* load_prim(int argc, scm_object *argv[])
     char* filename = SCM_CHAR_STR_VAL(argv[0]);
     int retcode = scm_load_file(filename);
     if (retcode != 0) {
+        scm_print_error("open-input-file: cannot open input file\n  path: ");
+        scm_print_error(filename);
+        scm_print_error("\n");
         scm_throw_eval_error();
     }
 
@@ -106,11 +100,6 @@ static scm_object* load_prim(int argc, scm_object *argv[])
 static scm_object* time_prim(int argc, scm_object *argv[])
 {
     return scm_make_integer(time(NULL));
-}
-
-static scm_object* clock_prim(int argc, scm_object *argv[])
-{
-    return scm_make_integer(clock());
 }
 
 static scm_object* rand_prim(int argc, scm_object *argv[])
@@ -180,7 +169,7 @@ static int get_skip_encoding_marks(scm_object *port)
         encoding = ENCODING_UTF_32LE;
         unread_bytes = read_bytes - 4;
     } else if ((bytes[0] == 0x2B) && (bytes[1] == 0x2F) && (bytes[2] == 0x76)
-        && (bytes[3] == 0x38 || bytes[3] == 0x39 || bytes[3] == 0x2B || bytes[3] == 0x2F)) {
+               && (bytes[3] == 0x38 || bytes[3] == 0x39 || bytes[3] == 0x2B || bytes[3] == 0x2F)) {
         encoding = ENCODING_UTF_7;
         unread_bytes = read_bytes - 4;
     } else if ((bytes[0] == 0x84) && (bytes[1] == 0x31) && (bytes[2] == 0x95) && (bytes[3] == 0x33)) {

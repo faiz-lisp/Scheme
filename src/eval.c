@@ -1,13 +1,11 @@
-﻿#include "eval.h"
-#include "env.h"
-#include "bool.h"
-#include "symbol.h"
-#include "number.h"
-#include "list.h"
-#include "error.h"
-#include "port.h"
-#include "print.h"
-#include "scm.h"
+// #include "eval.h"
+// #include "env.h"
+// #include "bool.h"
+// #include "list.h"
+// #include "error.h"
+ #include "port.h"
+ #include "symbol.h"
+// #include "print.h"
 
 #define EVAL(expr) { exp = expr; goto EVAL; }
 
@@ -19,7 +17,6 @@
         scm_make_app(scm_not_symbol, SCM_LIST1(scm_unless_test(exp))), \
         scm_make_begin(scm_unless_body(exp)))
 
-        
 static scm_object* eval_prim(int, scm_object *[]);
 static scm_object* eval(scm_object *, scm_env *);
 static scm_object* eval_definition(scm_object *, scm_env *);
@@ -33,9 +30,10 @@ static scm_object* and_to_if(scm_object *);
 static scm_object* or_to_if(scm_object *);
 static scm_object* cond_to_if(scm_object *);
 static scm_object* case_to_cond(scm_object *);
-static scm_object* do_to_more_prim(scm_object *);
-static scm_object* while_to_more_prim(scm_object *);
-static scm_object* for_to_more_prim(scm_object *);
+
+//
+//
+//
 
 static scm_env *global_env;
 
@@ -44,6 +42,7 @@ jmp_buf eval_error_jmp_buf;
 
 void scm_init()
 {
+    IfD printf("%s %d%s",__FILE__,__LINE__,";\n");
     global_env = scm_basic_env();
 }
 
@@ -87,7 +86,6 @@ static scm_object* eval_prim(int argc, scm_object *argv[])
 static scm_object* eval(scm_object *exp, scm_env *env)
 {
     EVAL:
-    // 根据表达式类型dispatch动作
     switch (SCM_TYPE(exp)) {
         case scm_true_type:
         case scm_false_type:
@@ -97,14 +95,16 @@ static scm_object* eval(scm_object *exp, scm_env *env)
         case scm_string_type:
         case scm_vector_type:
         case scm_void_type:
-            // self evaluating
+            //
             return exp;
             
         case scm_symbol_type: {
-            // 是符号，查询在环境中关联的值
-            scm_object *val = scm_env_lookup(env, (scm_symbol *) exp);
-            if (val != NULL) {
-                return val;
+            scm_env_entry *entry = scm_env_lookup(env, (scm_symbol *) exp);
+            if (entry != NULL) {
+                return entry->val;
+            // scm_object *val = scm_env_lookup(env, (scm_symbol *) exp);
+            // if (val != NULL) {
+                // return val;
             } else {
                 return scm_undefined_identifier((scm_symbol *)exp);
             }
@@ -120,39 +120,30 @@ static scm_object* eval(scm_object *exp, scm_env *env)
                 return NULL;
             }
             scm_symbol *operator = (scm_symbol *) scm_operator(exp);
-            // 如果运算符为符号，可能是语法关键字
             if (SCM_SYMBOLP(operator)) {
                 if (SAME_OBJ(operator, scm_quote_symbol))
-                    // eval quotation
                     return scm_quoted_object(exp);
                 if (SAME_OBJ(operator, scm_define_symbol))
                     return eval_definition(exp, env);
                 if (SAME_OBJ(operator, scm_lambda_symbol))
                     return eval_lambda(exp, env);
                 if (SAME_OBJ(operator, scm_begin_symbol)) {
-                    /* 求值顺序表达式/序列 */
                     scm_object *exps = scm_begin_actions(exp);
                     if (! SCM_NULLP(exps)) {
-                        // 顺序求值尾部前面的表达式
                         for(; ! SCM_NULLP( SCM_CDR(exps) ); exps = SCM_CDR(exps) )
                             eval(SCM_CAR(exps), env);
-                        // 迭代求值尾上下文中的表达式
                         EVAL(SCM_CAR(exps));
                     } else {
                         return scm_void;
                     }
                 }
                 if (SAME_OBJ(operator, scm_if_symbol)) {
-                    /* 求值if表达式 */
                     scm_object *optionalAlt;
-                    // 首先求值谓词表达式
-                    // 然后继续判断谓词的值：如果为真，返回迭代求值后件，否则迭代求值前件
                     EVAL(SCM_TRUEP( eval(scm_if_predicate(exp), env) ) ?
                           scm_if_consequent(exp) : (optionalAlt = scm_if_alternative(exp),
                                                     SCM_NULLP(optionalAlt) ? scm_void : optionalAlt));
                 }
                 if (SAME_OBJ(operator, scm_let_symbol)) {
-                    /* let在语法上变换到lambda */
                     EVAL(let_to_combination(exp));
                 }
                 if (SAME_OBJ(operator, scm_and_symbol)) {
@@ -173,25 +164,12 @@ static scm_object* eval(scm_object *exp, scm_env *env)
                 if (SAME_OBJ(operator, scm_case_symbol)) {
                     EVAL(case_to_cond(exp));
                 }
-                if (SAME_OBJ(operator, scm_do_symbol)) {
-                    EVAL(do_to_more_prim(exp));
-                }
-                if (SAME_OBJ(operator, scm_while_symbol)) {
-                    EVAL(while_to_more_prim(exp));
-                }
-                if (SAME_OBJ(operator, scm_for_symbol)) {
-                    EVAL(for_to_more_prim(exp));
-                }
                 if (SAME_OBJ(operator, scm_assignment_symbol))
                     return eval_assignment(exp, env);
             }
 
-            /* 另外，是符号但不是语法关键字，或者不是符号，就是过程调用表达式：*/
-            // 首先求值运算符，得到过程对象
             scm_object *proc = eval((scm_object *) operator, env);
             scm_object *operands = scm_operands(exp);
-
-            // 然后求值运算数，得到实际参数
             //array of values
             //TODO: O(n)
             scm_object **argv = malloc(sizeof(scm_object *) * scm_list_length(operands));
@@ -201,16 +179,12 @@ static scm_object* eval(scm_object *exp, scm_env *env)
             }
 
             if (SCM_PRIMPROCP(proc)) {
-                // 检查实参个数是否匹配形参个数
                 if (match_arity(proc, argc, argv))
                     return apply_primitive_procedure(proc, argc, argv);
             } else if (SCM_COMPROCP(proc)) {
                 if (match_arity(proc, argc, argv)) {
-                    // 将过程体转换为begin类型表达式
                     exp = scm_make_begin(((scm_compound_proc *)proc)->body);
-                    // 构造一个用于执行过程调用的新环境
                     env = make_apply_env((scm_compound_proc *)proc, argc, argv);
-                    // 在新环境上下文中迭代求值过程体。注意这里没有去递归调用eval，上同
                     goto EVAL;
                 }
             } else {
@@ -220,9 +194,9 @@ static scm_object* eval(scm_object *exp, scm_env *env)
             }
             break;
         }
-        case scm_null_type:
+        case scm_null_type: IfD     {
             scm_print_error("application: illegal empty application;\n");
-            scm_throw_eval_error();
+            scm_throw_eval_error(); }
             break;
         default: ;
     }
@@ -285,7 +259,12 @@ static scm_object* eval_definition(scm_object *exp, scm_env *env)
     if (SCM_COMPROCP(val))
         ((scm_compound_proc *)val)->name = SCM_SYMBOL_STR_VAL(id);
     
-    scm_env_add_binding(env, id, val);
+    scm_env_entry * entry = scm_env_lookup(env, id);
+    if (entry == NULL) {
+        scm_env_add_binding(env, id, val);
+    } else {
+        entry->val = val;
+    }
     
     return scm_void;
 }
@@ -293,7 +272,11 @@ static scm_object* eval_definition(scm_object *exp, scm_env *env)
 static scm_object* eval_assignment(scm_object *exp, scm_env *env)
 {
     scm_symbol *id = scm_assignment_var(exp);
-    if (scm_env_update_binding(env, id, eval(scm_assignment_val(exp), env)) != 0) {
+    scm_env_entry * entry = scm_env_lookup(env, id);
+    if (entry != NULL) {
+        entry->val = eval(scm_assignment_val(exp), env);
+    } else {
+        // if entry is NULL
         scm_undefined_identifier(id);
     }
     return scm_void;
@@ -302,26 +285,31 @@ static scm_object* eval_assignment(scm_object *exp, scm_env *env)
 static scm_env* make_apply_env(scm_compound_proc *proc, int argc, scm_object *argv[])
 {
     if (proc->params_len > 0) {
-        // 将创建该过程时的环境作为外围环境
-        scm_env *apply_env = scm_env_new_frame(proc->params_len, proc->env);
+        scm_env *apply_env = (scm_env *)scm_malloc_object(sizeof(scm_env));
+        apply_env->rest = NULL;
 
         int index;
-        if (proc->min_arity == proc->max_arity) {
+        if (proc->min_arity == proc->max_arity) { // '(x y z)
             for (index = 0; index < proc->params_len; index++)
                 scm_env_add_binding(apply_env, (scm_symbol *)proc->params[index], argv[index]);
         } else {
-            if (proc->min_arity > 0) {
+            if (proc->min_arity > 0) { // '(x y . z)
                 for (index = 0; index < proc->params_len - 1; index++)
                     scm_env_add_binding(apply_env, (scm_symbol *) proc->params[index], argv[index]);
                 scm_env_add_binding(apply_env, (scm_symbol *)proc->params[index],
                     scm_build_list(argc - index, argv + index));
-            } else {
+            } else { // 'x
                 scm_env_add_binding(apply_env, (scm_symbol *)proc->params[0], scm_build_list(argc, argv));
             }
         }
+        // TODO: high efficient!
+        scm_env *base_env = apply_env;
+        while (base_env->rest)
+            base_env = base_env->rest;
+        base_env->rest = proc->env;
 
         return apply_env;
-    } else {
+    } else { // '()
         return proc->env;
     }
 }
@@ -359,35 +347,32 @@ static int match_arity(scm_object *proc, int argc, scm_object *argv[])
 
 static scm_object* let_to_combination(scm_object *exp)
 {
-    // pluck bindings vars, inits
     scm_object *bindings = scm_let_bindings(exp);
-    scm_pair binding_vars_head;
-    scm_object *var_prev = (scm_object *)&binding_vars_head;
-    scm_pair binding_inits_head;
-    scm_object *init_prev = (scm_object *)&binding_inits_head;
-    scm_list_for_each(bindings) {
-        var_prev = SCM_CDR(var_prev) = SCM_LCONS(SCM_CAAR(bindings), scm_null);
-        init_prev = SCM_CDR(init_prev) = SCM_LCONS(SCM_CADAR(bindings), scm_null);
-    }
-    
-    scm_object *binding_vars = var_prev != (scm_object *)&binding_vars_head ?
-        SCM_CDR(&binding_vars_head) : scm_null;
-    scm_object *binding_inits = init_prev != (scm_object *)&binding_inits_head ?
-        SCM_CDR(&binding_inits_head) : scm_null;
-    
     scm_object *body = scm_let_body(exp);
-    
+    scm_object *let_binding_vars = scm_null, *var_last;
+    scm_object *let_binding_inits = scm_null, *init_last;
+
+    scm_list_for_each(bindings) {
+        if(SCM_NULLP(let_binding_vars)) {
+            let_binding_vars = var_last = SCM_LCONS(SCM_CAAR(bindings), scm_null);
+            let_binding_inits = init_last = SCM_LCONS(SCM_CADAR(bindings), scm_null);
+        } else {
+            var_last = SCM_CDR(var_last) = SCM_LCONS(SCM_CAAR(bindings), scm_null);
+            init_last = SCM_CDR(init_last) = SCM_LCONS(SCM_CADAR(bindings), scm_null);
+        }
+    }
+
     if(scm_is_named_let(exp)) {
         return scm_make_app0(
                    scm_make_lambda(
                        scm_null,
                        SCM_LIST2(
-                           scm_make_def(scm_let_var(exp), scm_make_lambda(binding_vars, body)),
-                           scm_make_app(scm_let_var(exp), binding_inits))));
+                           scm_make_def(scm_let_var(exp), scm_make_lambda(let_binding_vars, body)),
+                           scm_make_app(scm_let_var(exp), let_binding_inits))));
     } else {
         return scm_make_app(
-                   scm_make_lambda(binding_vars, body),
-                   binding_inits);
+                   scm_make_lambda(let_binding_vars, body),
+                   let_binding_inits);
     }
 }
 
@@ -403,7 +388,7 @@ static scm_object* let_to_combination(scm_object *exp)
         \
         exp = SCM_CDR(exp); \
         scm_list_for_each(exp) { \
-            if (!SCM_NULLP(SCM_CDR(exp))) { \
+            if(!SCM_NULLP(SCM_CDR(exp))) { \
                 if_exp = scm_make_if(pred_exp, temp_var, NULL); \
                 let_exp = scm_make_let(SCM_LIST1(SCM_LIST2(temp_var, SCM_CAR(exp))), if_exp); \
                 if (head != NULL) \
@@ -426,6 +411,7 @@ static scm_object* let_to_combination(scm_object *exp)
 
 GEN_AND_OR_OR_TRANS(and_to_if, scm_true, scm_make_app(scm_not_symbol, SCM_LIST1(temp_var)));
 GEN_AND_OR_OR_TRANS(or_to_if, scm_false, temp_var);
+
 
 static scm_object* cond_to_if(scm_object *exp)
 {
@@ -513,69 +499,4 @@ static scm_object* case_to_cond(scm_object *exp)
     return scm_make_let(
                SCM_LIST1(SCM_LIST2(temp_var, scm_case_key(exp))),
                body);
-}
-
-static scm_object* do_to_more_prim(scm_object *exp)
-{
-    scm_object *bindings = scm_do_bindings(exp);
-    scm_pair let_bindings_head;
-    scm_object *bind_prev = (scm_object *)&let_bindings_head;
-    scm_pair steps_head;
-    scm_object *step_prev = (scm_object *)&steps_head;
-    // pluck bindings (var, init), steps
-    scm_list_for_each(bindings) {
-        bind_prev = SCM_CDR(bind_prev) = SCM_LIST1(SCM_LIST2(SCM_CAAR(bindings), SCM_CADAR(bindings)));
-        step_prev = SCM_CDR(step_prev) = SCM_LIST1(SCM_CADDAR(bindings));
-    }
-    scm_object *let_bindings = bind_prev != (scm_object *)&let_bindings_head ?
-        SCM_CDR(&let_bindings_head) : scm_null;
-    scm_object *steps = step_prev != (scm_object *)&steps_head ?
-        SCM_CDR(&steps_head) : scm_null;
-    
-    scm_object *var = scm_gen_symbol();
-
-    return scm_make_named_let(
-               var,
-               let_bindings,
-               scm_make_if(
-                   scm_do_test(exp),
-                   scm_sequence_exp(scm_do_actions(exp)),
-                   scm_sequence_exp(
-                       scm_append_list2(scm_do_commands(exp), SCM_LIST1(scm_make_app(var, steps))))));
-}
-
-static scm_object* while_to_more_prim(scm_object *exp)
-{
-    scm_object *var = scm_gen_symbol();
-
-    return scm_make_named_let(
-               var,
-               scm_null,
-               scm_make_when(
-                   scm_while_test(exp),
-                   scm_append_list2(
-                       scm_while_body(exp),
-                       SCM_LIST1(scm_make_app0(var)))));
-}
-
-static scm_object* for_to_more_prim(scm_object *exp)
-{
-    scm_object *var = scm_for_var(exp);
-    scm_object *list = scm_for_list(exp);
-    scm_object *loop_var = scm_gen_symbol();
-
-    return scm_make_named_let(
-               loop_var,
-               SCM_LIST1(SCM_LIST2(var, scm_for_list_start(list))),
-               scm_make_when(
-                   scm_make_app(scm_lt_symbol, SCM_LIST2(var, scm_for_list_end(list))),
-                   scm_append_list2(
-                       scm_for_body(exp),
-                       SCM_LIST1(
-                           scm_make_app(
-                               loop_var,
-                               SCM_LIST1(
-                                   scm_make_app(
-                                       scm_plus_symbol,
-                                       SCM_LIST2(var, scm_make_integer(1)))))))));
 }

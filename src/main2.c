@@ -1,12 +1,17 @@
-
+// #include <stdio.h>
+// #include <string.h>
 #include "scm.h"
-
+// #include "port.h"
+// #include "print.h"
+// #include "read.h"
+// #include "system.h"
+// #include "eval.h"
 
 char *scm_g_repl_prompt = "> ";
 
 void repl()
 {
-    IfD puts("Welcome to scheme v0.02. github.com/hlpp/scheme, (?) for help"); //faiz
+    IfD puts("Welcome to scheme. github.com/hlpp/scheme, (?) for help");
 
     scm_object *exp, *val;
 

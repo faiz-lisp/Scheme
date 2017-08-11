@@ -1,7 +1,6 @@
 #ifndef SCHEME_ERROR_H
 #define SCHEME_ERROR_H
 
-#include "scm.h"
 
 void scm_print_error(const char *);
 
@@ -12,4 +11,5 @@ scm_object* scm_out_of_range(const char *, scm_object *, int, int, int);
 
 void scm_throw_eval_error();
 
+#include"error.c"
 #endif //SCHEME_ERROR_H

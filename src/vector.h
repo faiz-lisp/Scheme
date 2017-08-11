@@ -7,4 +7,5 @@ void scm_init_vector(scm_env *env);
 scm_object* scm_make_vector(scm_object **, int);
 scm_object* scm_list_to_vector(scm_object *, int);
 
+#include"vector.c"
 #endif //SCHEME_VECTOR_H

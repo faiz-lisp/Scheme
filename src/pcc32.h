@@ -1,4 +1,4 @@
-﻿/********************************************************
+/********************************************************
 * Author:  RedOC                                        *
 * Email:   RedOC@foxmail.com                            *
 * Notes:   Some functions about Win32 Console Control.  *
@@ -9,10 +9,6 @@
 #ifndef PCC32_H_INCLUDED
 #define PCC32_H_INCLUDED
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <conio.h>
-#include <windows.h>
 
 #ifndef REDOC_COMMEN_TYPE
 #define REDOC_COMMEN_TYPE
@@ -154,4 +150,5 @@ extern "C"
 }
 #endif
 
+#include"pcc32.c"
 #endif // PCC32_H_INCLUDED

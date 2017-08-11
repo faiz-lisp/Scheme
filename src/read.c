@@ -1,16 +1,16 @@
-#include <setjmp.h>
-#include <ctype.h>
-#include <string.h>
-#include "read.h"
-#include "bool.h"
-#include "number.h"
-#include "char.h"
-#include "str.h"
-#include "symbol.h"
-#include "list.h"
+// #include <setjmp.h>
+// #include <ctype.h>
+// #include <string.h>
+// #include "read.h"
+// #include "bool.h"
+// #include "number.h"
+// #include "char.h"
+// #include "str.h"
+// #include "symbol.h"
+// #include "list.h"
+// #include "env.h"
+// #include "error.h"
 #include "vector.h"
-#include "env.h"
-#include "error.h"
 
 scm_object* read(scm_object *);
 static scm_object* read_char(scm_object *);
@@ -19,7 +19,6 @@ static scm_object* read_number(scm_object *, char, int);
 static scm_object* read_symbol(scm_object *, int);
 static scm_object* read_quote(scm_object *);
 static scm_object* read_list(scm_object *);
-static scm_object* read_vector(scm_object *);
 static void skip_whitespace_comments(scm_object *);
 static scm_object* read_error(const char *s);
 
@@ -122,11 +121,6 @@ scm_object* read(scm_object *port)
                 case '\\':
                     obj = read_char(port);
                     break;
-                case '(':
-                case '[':
-                case '{':
-                    obj = read_vector(port);
-                    break;
                 default:
                     obj = read_number(port, c, 1);
             }
@@ -221,37 +215,7 @@ static scm_object* read_list(scm_object *port)
     if (!SCM_NULLP(head) && (!found_dot || SCM_NULLP(prev))) {
         SCM_PAIR_FLAGS(head) |= SCM_PAIR_IS_LIST;
     }
-    
     return head;
-}
-
-static scm_object* read_vector(scm_object *port)
-{
-    int len = 0;
-    scm_pair head;
-    scm_object *prev = (scm_object *)&head;
-    scm_object *obj;
-    int c;
-    
-    while (1) {
-        c = scm_getc(port);
-        if (c == ')' || c == ']' || c == '}' || scm_eofp(c)) {
-            break;
-        }
-        
-        scm_ungetc(c, port);
-        obj = read(port);
-        skip_whitespace_comments(port);
-        
-        SCM_CDR(prev) = SCM_LIST1(obj);
-        prev = SCM_CDR(prev);
-        len++;
-    }
-
-    if (prev != (scm_object *)&head)
-        return scm_list_to_vector(SCM_CDR(&head), len);
-    else
-        return scm_make_vector(NULL, 0);
 }
 
 static scm_object* read_symbol(scm_object *port, int initch)
@@ -430,36 +394,100 @@ static scm_object* read_string(scm_object *port)
     return scm_make_string((const char*)buf, buf_idx);
 }
 
+// static void skip_whitespace_comments(scm_object *port)
+// {
+    // int c, c1;
+    // while (1) {
+        // c = scm_getc(port);
+        // if (isspace(c)) {
+            // continue;
+        // } else if ((c == ';') || (c == '#')) { // comment start
+            // int comment_flag = c;
+            // c1 = scm_getc(port); //
+            // if (c1 == '|') {
+                // while (1) {
+                    // c = scm_getc(port);
+                    // if (c == '|') {
+                        // c = scm_getc(port);
+                        // if (c == comment_flag)
+                            // break;
+                    // } else if (scm_eofp(c))
+                        // return;
+                // }
+            // } else {
+                // if (comment_flag == ';') {
+                    // while (1) {
+                        // c = scm_getc(port);
+                        // if (c == '\n' || c == '\r')
+                            // break;
+                        // else if (scm_eofp(c))
+                            // return;
+                    // }
+                // }else if (comment_flag == '#') {
+                    // scm_ungetc(c1, port);
+                    // break;
+                // }
+            // }
+        // } else
+            // break;
+    // }
+    // scm_ungetc(c, port);
+// }
+
+// static void skip_whitespace_comments(scm_object *port)
+// {
+    // char c;
+    // while (1) {
+        // c = scm_getc(port);
+        // if (isspace(c))
+            // continue;
+        // else if (c == ';') {
+            // while(1) {
+                // c = scm_getc(port);
+                // if (c == '\n' || c == '\r')
+                    // break;
+                // else if (scm_eofp(c))
+                    // return;
+            // }
+        // } else
+            // break;
+    // }
+    // scm_ungetc(c, port);
+// }
+
 static void skip_whitespace_comments(scm_object *port)
 {
-    int c, c1;
+    char c, c1;
     while (1) {
         c = scm_getc(port);
-        if (isspace(c))
+        if (isspace(c)) {
             continue;
-        else if (c == ';') {
-            while(1) {
+        } else if ((c == ';')) { // comment start
+            while (1) {
                 c = scm_getc(port);
                 if (c == '\n' || c == '\r')
                     break;
                 else if (scm_eofp(c))
                     return;
             }
-        } else if (c == '#') { // mutil-line comment start
+        } else if ((c == '#')) { // comment start
+            int comment_flag = c;
             c1 = scm_getc(port);
             if (c1 == '|') {
                 while (1) {
                     c = scm_getc(port);
                     if (c == '|') {
                         c = scm_getc(port);
-                        if (c == '#')
+                        if (c == comment_flag)
                             break;
                     } else if (scm_eofp(c))
                         return;
                 }
             } else {
-                scm_ungetc(c1, port);
-                break;
+                {
+                    scm_ungetc(c1, port);
+                    break;
+                }
             }
         } else
             break;

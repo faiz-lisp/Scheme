@@ -1,9 +1,9 @@
-#include "fun.h"
-#include "eval.h"
-#include "bool.h"
-#include "list.h"
-#include "env.h"
-#include "error.h"
+// #include "fun.h"
+// #include "eval.h"
+// #include "bool.h"
+// #include "list.h"
+// #include "env.h"
+// #include "error.h"
 
 static scm_object* procedure_p_prim(int, scm_object *[]);
 static scm_object* apply_prim(int, scm_object *[]);

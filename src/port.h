@@ -1,8 +1,6 @@
 #ifndef SCHEME_PORT_H
 #define SCHEME_PORT_H
 
-#include <stdio.h>
-#include "scm.h"
 
 typedef struct {
     scm_object o;
@@ -29,4 +27,5 @@ scm_object* scm_close_input_port(scm_object *);
 int scm_getc(scm_object* port);
 int scm_ungetc(int ch, scm_object* port);
 
+#include"port.c"
 #endif //SCHEME_PORT_H
